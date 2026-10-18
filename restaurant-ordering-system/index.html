@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>美味食堂｜線上點餐</title>
+<style>
+/* ===== 色彩與基本設定 ===== */
+:root{
+  --bg:#FAF8F3; --green:#285943; --green-d:#1D4333; --card:#FFFFFF;
+  --text:#303030; --sub:#777777; --line:#E8E6E1; --red:#C94C4C;
+  --shadow:0 2px 10px rgba(40,89,67,.08); --r:14px;
+}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;line-height:1.6;overflow-x:hidden}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+button:focus-visible{outline:3px solid #8FC3A8;outline-offset:2px}
+button:disabled{opacity:.45;cursor:not-allowed}
+[hidden]{display:none!important}
+
+/* ===== 頁首 ===== */
+header{background:var(--green);color:#fff;padding:18px 20px;position:sticky;top:0;z-index:20}
+.header-in{max-width:1200px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+header h1{font-size:1.6rem;letter-spacing:.08em}
+header p{font-size:.92rem;opacity:.85}
+.cart-badge{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.14);padding:8px 14px;border-radius:999px;color:#fff;font-weight:700}
+.cart-badge:hover{background:rgba(255,255,255,.26)}
+.cart-badge:active{transform:scale(.97)}
+.cart-badge svg{width:22px;height:22px}
+
+/* ===== 版面 ===== */
+main{max-width:1200px;margin:auto;padding:20px;display:grid;grid-template-columns:7fr 3fr;gap:24px;align-items:start}
+.cats{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;margin-bottom:16px;-webkit-overflow-scrolling:touch}
+.cat{flex:none;padding:9px 22px;border-radius:999px;border:1.5px solid var(--line);background:var(--card);font-weight:600;color:var(--sub);transition:.15s}
+.cat:hover{border-color:var(--green);color:var(--green)}
+.cat:active{transform:scale(.96)}
+.cat[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:#fff}
+
+/* ===== 餐點卡片 ===== */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px}
+.dish{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.dish img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:var(--r) var(--r) 0 0;background:#EFEBE1;display:block}
+.dish-body{padding:14px;display:flex;flex-direction:column;gap:6px;flex:1}
+.dish h3{font-size:1.1rem}
+.dish .desc{color:var(--sub);font-size:.88rem;flex:1;overflow-wrap:anywhere}
+.price{color:var(--green);font-weight:700;font-size:1.15rem}
+.btn{padding:10px 16px;border-radius:10px;font-weight:700;transition:.15s}
+.btn-primary{background:var(--green);color:#fff}
+.btn-primary:hover:not(:disabled){background:var(--green-d)}
+.btn-primary:active:not(:disabled){transform:scale(.97)}
+.btn-ghost{border:1.5px solid var(--line);background:var(--card)}
+.btn-ghost:hover:not(:disabled){border-color:var(--green);color:var(--green)}
+.btn-ghost:active:not(:disabled){transform:scale(.97)}
+.btn-danger{color:var(--red);border:1.5px solid var(--line);background:var(--card)}
+.btn-danger:hover:not(:disabled){border-color:var(--red);background:#FBEDED}
+
+/* ===== 購物車 ===== */
+.cart{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:18px;position:sticky;top:92px;scroll-margin-top:90px}
+.cart h2{font-size:1.2rem;margin-bottom:12px}
+.empty{color:var(--sub);text-align:center;padding:26px 6px}
+.items{list-style:none;padding:0;display:flex;flex-direction:column;gap:12px;max-height:46vh;overflow-y:auto}
+.item{border-bottom:1px solid var(--line);padding-bottom:12px}
+.item-top{display:flex;justify-content:space-between;gap:8px;font-weight:600}
+.item-top span{overflow-wrap:anywhere}
+.unit{color:var(--sub);font-size:.85rem;font-weight:400}
+.item-bot{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.qty{display:flex;align-items:center;gap:4px}
+.qty button{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--line);font-size:1.15rem;line-height:1}
+.qty button:hover{border-color:var(--green);color:var(--green)}
+.qty button:active{transform:scale(.92)}
+.qty b{min-width:28px;text-align:center}
+.sub{font-weight:700;color:var(--green)}
+.del{width:36px;height:36px;border-radius:50%;color:var(--red)}
+.del:hover{background:#FBEDED}
+.del svg{width:18px;height:18px}
+.summary{margin-top:14px;padding-top:12px;border-top:2px solid var(--line)}
+.row{display:flex;justify-content:space-between;color:var(--sub)}
+.total{display:flex;justify-content:space-between;align-items:baseline;margin:6px 0 14px;font-weight:700}
+.total strong{font-size:1.9rem;color:var(--green)}
+.actions{display:grid;gap:8px}
+
+/* ===== 訂單視窗與完成畫面 ===== */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.modal{background:#fff;border-radius:var(--r);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:22px}
+.modal h2{margin-bottom:12px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+tfoot td{font-weight:700;border-bottom:0}
+.pay{text-align:right;font-size:1.5rem;font-weight:700;color:var(--green);margin:14px 0}
+.modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.done{max-width:640px;margin:30px auto;grid-column:1/-1;background:#fff;border-radius:var(--r);box-shadow:var(--shadow);padding:26px}
+.done h2{color:var(--green);margin-bottom:14px}
+.done .btn{width:100%;margin-top:6px}
+
+/* ===== 手機底部購物車列 ===== */
+.mbar{display:none}
+
+/* ===== 響應式 ===== */
+@media (max-width:1023px){
+  main{grid-template-columns:3fr 2fr;gap:16px;padding:16px}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+}
+@media (max-width:767px){
+  main{grid-template-columns:1fr;padding:14px 14px 90px}
+  .cart{position:static}
+  .items{max-height:none}
+  header h1{font-size:1.3rem}
+  .mbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--green);color:#fff;padding:12px 16px;justify-content:space-between;align-items:center;font-weight:700;width:100%;min-height:56px}
+  .mbar:active{background:var(--green-d)}
+  .mbar strong{font-size:1.2rem}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .dish-body{padding:10px}
+  .modal-actions{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-in">
+    <div><h1>美味食堂</h1><p>歡迎光臨，今天想吃什麼？</p></div>
+    <button class="cart-badge" id="headerCart" aria-label="查看購物車">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l3 12h11l2-8H6"/></svg>
+      <span id="headerCount">0</span>
+    </button>
+  </div>
+</header>
+
+<main id="mainLayout">
+  <section aria-label="菜單">
+    <div class="cats" id="cats" role="group" aria-label="餐點分類"></div>
+    <div class="grid" id="menuGrid"></div>
+  </section>
+  <aside class="cart" id="cart" aria-label="購物車">
+    <h2>我的購物車</h2>
+    <div id="cartBody"></div>
+  </aside>
+</main>
+
+<button class="mbar" id="mobileBar" aria-label="前往購物車">
+  <span>🛒 <span id="mobileCount">0</span> 件</span><strong id="mobileTotal">NT$ 0</strong>
+</button>
+
+<div class="overlay" id="confirmOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <h2 id="confirmTitle">美味食堂 — 訂單確認</h2>
+    <div id="confirmBody"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="backBtn">返回修改</button>
+      <button class="btn btn-primary" id="finishBtn">確認完成</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ MenuData：餐點資料（價格唯一來源） ============ */
+const MenuData = {
+  categories: ['全部','主餐','小菜','飲料','甜點'],
+  items: [
+    {id:1, name:'香酥雞排飯', category:'主餐', price:120, image:'images/chicken-rice.jpg', description:'現炸酥脆雞排，搭配白飯與配菜。'},
+    {id:2, name:'滷肉飯', category:'主餐', price:55, image:'images/braised-pork-rice.jpg', description:'古早味肉燥慢火細滷，香濃入味。'},
+    {id:3, name:'排骨飯', category:'主餐', price:110, image:'images/pork-chop-rice.jpg', description:'厚切排骨酥炸，附三樣配菜。'},
+    {id:4, name:'紅燒牛肉麵', category:'主餐', price:160, image:'images/beef-noodles.jpg', description:'牛肉與牛筋燉煮入味，湯頭濃郁。'},
+    {id:5, name:'燙青菜', category:'小菜', price:40, image:'images/vegetables.jpg', description:'當季青菜燙熟，淋上蒜香醬油。'},
+    {id:6, name:'滷蛋', category:'小菜', price:15, image:'images/braised-egg.jpg', description:'入味滷蛋，單點加購都合適。'},
+    {id:7, name:'黃金泡菜', category:'小菜', price:45, image:'images/kimchi.jpg', description:'酸甜爽脆的台式黃金泡菜。'},
+    {id:8, name:'紅茶', category:'飲料', price:30, image:'images/black-tea.jpg', description:'茶香清爽，甘醇順口。'},
+    {id:9, name:'奶茶', category:'飲料', price:45, image:'images/milk-tea.jpg', description:'紅茶加鮮奶，滑順溫潤。'},
+    {id:10, name:'冬瓜茶', category:'飲料', price:35, image:'images/winter-melon-tea.jpg', description:'古法熬煮，清甜解膩。'},
+    {id:11, name:'焦糖布丁', category:'甜點', price:50, image:'images/pudding.jpg', description:'蛋香濃郁，焦糖微苦帶甜。'},
+    {id:12, name:'巧克力蛋糕', category:'甜點', price:80, image:'images/chocolate-cake.jpg', description:'濃郁可可，口感綿密。'}
+  ],
+  placeholder: 'images/placeholder.svg',
+  find(id){ return this.items.find(i => i.id === id); }
+};
+
+/* ============ CartManager：購物車唯一資料來源 ============ */
+const CartManager = {
+  lines: [],               // [{id, qty}]，只存編號與數量，價格一律回查 MenuData
+  add(id){
+    if (!MenuData.find(id)) return;
+    const line = this.lines.find(l => l.id === id);
+    if (line) line.qty += 1; else this.lines.push({id, qty:1});
+  },
+  change(id, delta){
+    const line = this.lines.find(l => l.id === id);
+    if (!line) return;
+    line.qty = Math.max(0, line.qty + delta);          // 數量不可為負
+    if (line.qty === 0) this.remove(id);               // 減到 0 自動移除
+  },
+  remove(id){ this.lines = this.lines.filter(l => l.id !== id); },
+  clear(){ this.lines = []; },
+  isEmpty(){ return this.lines.length === 0; }
+};
+
+/* ============ PriceCalculator：所有金額由資料計算 ============ */
+const PriceCalculator = {
+  unitPrice(id){ return MenuData.find(id).price; },
+  subtotal(line){ return this.unitPrice(line.id) * line.qty; },
+  totalQty(lines){ return lines.reduce((s,l) => s + l.qty, 0); },
+  totalPrice(lines){ return lines.reduce((s,l) => s + this.subtotal(l), 0); }
+};
+
+/* ============ OrderManager：訂單確認（快照，完成後不可修改） ============ */
+const OrderManager = {
+  confirmed: null,
+  snapshot(){
+    return CartManager.lines.map(l => {
+      const d = MenuData.find(l.id);
+      return {name:d.name, price:d.price, qty:l.qty, subtotal:PriceCalculator.subtotal(l)};
+    });
+  },
+  finish(){ this.confirmed = this.snapshot(); },
+  reset(){ this.confirmed = null; }
+};
+
+/* ============ UIRenderer / MenuRenderer ============ */
+const $ = id => document.getElementById(id);
+const fmt = n => 'NT$ ' + n;
+const state = { category:'全部' };
+
+// 防止圖片失敗後無限重複載入：只替換一次
+function attachFallback(img){
+  img.addEventListener('error', () => {
+    if (img.dataset.fallback) return;
+    img.dataset.fallback = '1';
+    img.src = MenuData.placeholder;
+  });
+}
+
+const MenuRenderer = {
+  renderCategories(){
+    const box = $('cats'); box.innerHTML = '';
+    MenuData.categories.forEach(c => {
+      const b = document.createElement('button');
+      b.className = 'cat'; b.textContent = c; b.dataset.cat = c;
+      b.setAttribute('aria-pressed', c === state.category);
+      box.appendChild(b);
+    });
+  },
+  renderMenu(){
+    const grid = $('menuGrid'); grid.innerHTML = '';
+    MenuData.items.filter(i => state.category === '全部' || i.category === state.category).forEach(i => {
+      const card = document.createElement('article'); card.className = 'dish';
+      const img = document.createElement('img');
+      img.alt = i.name + '餐點照片'; img.loading = 'lazy'; img.width = 800; img.height = 600;
+      attachFallback(img); img.src = i.image;
+      const body = document.createElement('div'); body.className = 'dish-body';
+      body.innerHTML = '<h3></h3><p class="desc"></p><div class="price"></div>';
+      body.querySelector('h3').textContent = i.name;
+      body.querySelector('.desc').textContent = i.description;
+      body.querySelector('.price').textContent = fmt(i.price);
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-primary'; btn.dataset.add = i.id; btn.textContent = '＋ 加入購物車';
+      body.appendChild(btn); card.append(img, body); grid.appendChild(card);
+    });
+  }
+};
+
+const UIRenderer = {
+  renderCart(){
+    const lines = CartManager.lines;
+    const qty = PriceCalculator.totalQty(lines), total = PriceCalculator.totalPrice(lines);
+    const empty = CartManager.isEmpty();
+    let html = '';
+    if (empty){
+      html += '<p class="empty">購物車目前是空的，快來選擇喜歡的餐點吧！</p>';
+    } else {
+      html += '<ul class="items">' + lines.map(l => {
+        const d = MenuData.find(l.id);
+        return `<li class="item"><div class="item-top"><span>${d.name}</span><span class="unit">${fmt(d.price)}</span></div>
+        <div class="item-bot"><div class="qty">
+          <button data-dec="${l.id}" aria-label="減少${d.name}數量">−</button><b>${l.qty}</b>
+          <button data-inc="${l.id}" aria-label="增加${d.name}數量">＋</button></div>
+          <span class="sub">${fmt(PriceCalculator.subtotal(l))}</span>
+          <button class="del" data-del="${l.id}" aria-label="刪除${d.name}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/></svg></button>
+        </div></li>`;
+      }).join('') + '</ul>';
+    }
+    html += `<div class="summary"><div class="row"><span>餐點總數量</span><span>${qty} 件</span></div>
+      <div class="total"><span>訂單總金額</span><strong>${fmt(total)}</strong></div>
+      <div class="actions"><button class="btn btn-primary" id="checkoutBtn" ${empty?'disabled':''}>確認訂單</button>
+      <button class="btn btn-danger" id="clearBtn" ${empty?'disabled':''}>清空購物車</button></div></div>`;
+    $('cartBody').innerHTML = html;
+    $('headerCount').textContent = qty;
+    $('mobileCount').textContent = qty;
+    $('mobileTotal').textContent = fmt(total);
+  },
+  // 產生明細表格（確認視窗與完成畫面共用）
+  orderTable(rows){
+    const qty = rows.reduce((s,r)=>s+r.qty,0), total = rows.reduce((s,r)=>s+r.subtotal,0);
+    return `<div class="table-wrap"><table><thead><tr><th>餐點</th><th>單價</th><th>數量</th><th>小計</th></tr></thead><tbody>` +
+      rows.map(r=>`<tr><td>${r.name}</td><td>$${r.price}</td><td>${r.qty}</td><td>$${r.subtotal}</td></tr>`).join('') +
+      `</tbody><tfoot><tr><td>總計</td><td></td><td>${qty}</td><td>$${total}</td></tr></tfoot></table></div>
+      <div class="pay">應付金額：${fmt(total)}</div>`;
+  },
+  showConfirm(){
+    $('confirmBody').innerHTML = this.orderTable(OrderManager.snapshot());
+    $('confirmOverlay').hidden = false;
+    $('finishBtn').focus();
+  },
+  hideConfirm(){ $('confirmOverlay').hidden = true; },
+  showDone(){
+    const main = $('mainLayout');
+    main.innerHTML = `<section class="done" aria-live="polite"><h2>訂單已確認，感謝您的點餐！</h2>
+      ${this.orderTable(OrderManager.confirmed)}<button class="btn btn-primary" id="restartBtn">重新點餐</button></section>`;
+    $('mobileBar').hidden = true;
+    window.scrollTo({top:0});
+  },
+  restoreMenu(){
+    $('mainLayout').innerHTML = `<section aria-label="菜單"><div class="cats" id="cats" role="group" aria-label="餐點分類"></div><div class="grid" id="menuGrid"></div></section>
+      <aside class="cart" id="cart" aria-label="購物車"><h2>我的購物車</h2><div id="cartBody"></div></aside>`;
+    $('mobileBar').hidden = false;
+    bindMenuEvents();
+    MenuRenderer.renderCategories(); MenuRenderer.renderMenu(); this.renderCart();
+  }
+};
+
+/* ============ 事件處理（事件委派，避免重複綁定） ============ */
+function bindMenuEvents(){
+  $('cats').addEventListener('click', e => {
+    const b = e.target.closest('[data-cat]'); if (!b) return;
+    state.category = b.dataset.cat;                 // 切換分類不影響購物車
+    MenuRenderer.renderCategories(); MenuRenderer.renderMenu();
+  });
+  $('menuGrid').addEventListener('click', e => {
+    const b = e.target.closest('[data-add]'); if (!b) return;
+    CartManager.add(Number(b.dataset.add)); UIRenderer.renderCart();
+  });
+  $('cart').addEventListener('click', e => {
+    const t = e.target.closest('button'); if (!t || t.disabled) return;
+    if (t.dataset.inc) CartManager.change(Number(t.dataset.inc), 1);
+    else if (t.dataset.dec) CartManager.change(Number(t.dataset.dec), -1);
+    else if (t.dataset.del) CartManager.remove(Number(t.dataset.del));
+    else if (t.id === 'clearBtn'){
+      if (!confirm('確定要清空購物車嗎？')) return;
+      CartManager.clear();
+    }
+    else if (t.id === 'checkoutBtn'){
+      if (CartManager.isEmpty()) return;
+      UIRenderer.showConfirm(); return;
+    } else return;
+    UIRenderer.renderCart();
+  });
+}
+
+function scrollToCart(){ const c = $('cart'); if (c) c.scrollIntoView({behavior:'smooth'}); }
+$('headerCart').addEventListener('click', scrollToCart);
+$('mobileBar').addEventListener('click', scrollToCart);
+$('backBtn').addEventListener('click', () => UIRenderer.hideConfirm());
+$('finishBtn').addEventListener('click', () => {
+  if (CartManager.isEmpty()) { UIRenderer.hideConfirm(); return; }
+  OrderManager.finish(); UIRenderer.hideConfirm(); UIRenderer.showDone();
+});
+$('confirmOverlay').addEventListener('click', e => { if (e.target.id === 'confirmOverlay') UIRenderer.hideConfirm(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') UIRenderer.hideConfirm(); });
+// 重新點餐（完成畫面的按鈕由委派處理）
+document.addEventListener('click', e => {
+  if (e.target.id !== 'restartBtn') return;
+  CartManager.clear(); OrderManager.reset(); state.category = '全部'; UIRenderer.restoreMenu();
+});
+
+/* ============ 初始化 ============ */
+bindMenuEvents();
+MenuRenderer.renderCategories(); MenuRenderer.renderMenu(); UIRenderer.renderCart();
+</script>
+</body>
+</html>
